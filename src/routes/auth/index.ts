@@ -1,6 +1,8 @@
 import { FastifyPluginAsync } from 'fastify';
 import * as bcrypt from 'bcrypt';
 import prisma from '../../db';
+import { add, getUnixTime } from 'date-fns';
+import { BCRYPT_SALT_ROUNDS } from '../../constants';
 
 interface IUserLoginRequestBody {
   username: string;
@@ -41,8 +43,14 @@ const auth: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       return reply.badRequest('Invalid username or password.');
     }
 
+    console.log('login data:');
+    console.log({
+      givenUsername: requestBody.password,
+      userHashedPass: targetUser.password,
+    });
+
     const isCorrectPassword = await bcrypt.compare(
-      requestBody.username,
+      requestBody.password,
       targetUser.password
     );
 
@@ -50,8 +58,16 @@ const auth: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       return reply.badRequest('Invalid username or password.');
     }
 
+    const tokenExpiryDateTime = add(new Date(), { hours: 2 });
+    const userId = targetUser.id;
+
+    const newAccessToken = fastify.jwt.sign({
+      aud: userId,
+      exp: getUnixTime(tokenExpiryDateTime),
+    });
+
     return reply.send({
-      accessToken: 'test token',
+      accessToken: newAccessToken,
     });
   });
 
@@ -92,12 +108,20 @@ const auth: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     }
 
     try {
-      await prisma.user.create({
-        data: {
-          username: body.username,
-          password: body.password,
-        },
-      });
+      bcrypt.hash(
+        body.password,
+        BCRYPT_SALT_ROUNDS,
+        async function (err, hash) {
+          if (err) throw err;
+
+          await prisma.user.create({
+            data: {
+              username: body.username,
+              password: hash,
+            },
+          });
+        }
+      );
     } catch (error) {
       reply.internalServerError(String(error || 'Unknown error occurred.'));
     }

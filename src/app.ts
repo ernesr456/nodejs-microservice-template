@@ -1,6 +1,7 @@
 import { join } from 'path';
 import AutoLoad, { AutoloadPluginOptions } from '@fastify/autoload';
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import FastifyJwt from '@fastify/jwt';
 
 export type AppOptions = {
   // Place your custom options for app below here.
@@ -14,6 +15,20 @@ const app: FastifyPluginAsync<AppOptions> = async (
   opts
 ): Promise<void> => {
   // Place here your custom code!
+  fastify.register(FastifyJwt, {
+    secret: process.env.APP_AUTH_SECRET_KEY as string,
+  });
+
+  fastify.decorate(
+    'authenticate',
+    async function (request: FastifyRequest, reply: FastifyReply) {
+      try {
+        await request.jwtVerify();
+      } catch (err) {
+        reply.send(err);
+      }
+    }
+  );
 
   // Do not touch the following lines
 
@@ -32,6 +47,5 @@ const app: FastifyPluginAsync<AppOptions> = async (
     options: opts,
   });
 };
-
 export default app;
 export { app, options };
