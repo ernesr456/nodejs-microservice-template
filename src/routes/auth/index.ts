@@ -1,5 +1,8 @@
 import { FastifyPluginAsync } from 'fastify';
-import { loginHandler, registerHandler } from './controllers';
+import {
+  loginHandler,
+  registerHandler,
+} from '../../controllers/AuthControllers';
 import {
   IUserLoginRequestBody,
   IUserLoginResponseError,
@@ -7,7 +10,7 @@ import {
   IUserRegisterRequestBody,
   IUserRegisterResponseError,
   IUserRegisterResponseSucessful,
-} from './schemas';
+} from '../../schemas/AuthSchemas';
 
 const auth: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
   fastify.post<{

@@ -1,21 +1,23 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import * as bcrypt from 'bcrypt';
-import prisma from '../../db';
 import { add, getUnixTime } from 'date-fns';
-import { BCRYPT_SALT_ROUNDS } from '../../constants';
-import { IUserLoginRequestBody, IUserRegisterRequestBody } from './schemas';
+import {
+  IUserLoginRequestBody,
+  IUserRegisterRequestBody,
+} from '../schemas/AuthSchemas';
+import AuthRepository from '../repositories/AuthRepository';
 
 export const loginHandler =
   (fastify: FastifyInstance) =>
   async (request: FastifyRequest, reply: FastifyReply) => {
     const requestBody = request.body as IUserLoginRequestBody;
-    const targetUser = await prisma.user.findFirst({
-      where: {
-        username: requestBody.username,
-      },
-    });
 
-    if (!targetUser) {
+    let targetUser: any;
+
+    try {
+      targetUser = await AuthRepository.getUserByUsername(requestBody.username);
+    } catch (error) {
+      console.error(`loginHandler: error trying to get user: ${error}`);
       return reply.badRequest('Invalid username or password.');
     }
 
@@ -59,40 +61,35 @@ export const registerHandler = async (
     );
   }
 
-  const existingUser = await prisma.user.findFirst({
-    where: {
-      username: requestBody.username,
-    },
-  });
+  let existingUser: any;
+
+  try {
+    existingUser = await AuthRepository.getUserByUsername(requestBody.username);
+  } catch {
+    // pass
+  }
 
   if (existingUser) {
     return reply.badRequest('Username is already taken.');
   }
 
-  const body = request.body as IUserRegisterRequestBody;
-
-  const isMatchingPassword = body.password === body.confirmPassword;
+  const isMatchingPassword =
+    requestBody.password === requestBody.confirmPassword;
 
   if (!isMatchingPassword) {
     return reply.badRequest('Passwords do not match');
   }
 
   try {
-    bcrypt.hash(body.password, BCRYPT_SALT_ROUNDS, async function (err, hash) {
-      if (err) throw err;
-
-      await prisma.user.create({
-        data: {
-          username: body.username,
-          password: hash,
-        },
-      });
+    AuthRepository.createUser({
+      username: requestBody.username,
+      password: requestBody.password,
     });
   } catch (error) {
     reply.internalServerError(String(error || 'Unknown error occurred.'));
   }
 
   return reply.send({
-    accessToken: 'Registration successful.',
+    message: 'Registration successful.',
   });
 };

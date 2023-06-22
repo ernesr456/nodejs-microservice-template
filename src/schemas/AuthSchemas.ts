@@ -15,7 +15,9 @@ export interface IUserRegisterRequestBody {
   password: string;
   confirmPassword: string;
 }
-export interface IUserRegisterResponseSucessful {}
+export interface IUserRegisterResponseSucessful {
+  message: string;
+}
 export interface IUserRegisterResponseError {
   status: number;
   message: string;
