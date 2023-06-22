@@ -3,7 +3,11 @@ import * as bcrypt from 'bcrypt';
 import prisma from '../../db';
 import { add, getUnixTime } from 'date-fns';
 import { BCRYPT_SALT_ROUNDS } from '../../constants';
-import { IUserLoginRequestBody, IUserRegisterRequestBody } from './schemas';
+import {
+  IUserLoginRequestBody,
+  IUserRegisterRequestBody,
+  IUserSessionRequestBody,
+} from './schemas';
 
 export const loginHandler =
   (fastify: FastifyInstance) =>
@@ -96,3 +100,35 @@ export const registerHandler = async (
     accessToken: 'Registration successful.',
   });
 };
+
+export const sessionHandler =
+  (fastify: FastifyInstance) =>
+  async (request: FastifyRequest, reply: FastifyReply) => {
+    const requestBody = request.body as IUserSessionRequestBody;
+
+    if (!requestBody.walletId) {
+      return reply.badRequest("Missing required field: 'walletId'");
+    }
+
+    if (true) {
+      // NOTE: temporary; change to blockchain auth later
+      const tokenExpiryDateTime = add(new Date(), { hours: 2 });
+
+      const newSessionToken = fastify.jwt.sign({
+        aud: requestBody.walletId,
+        exp: getUnixTime(tokenExpiryDateTime),
+      });
+
+      request.sessionStore.set(newSessionToken, request.session, (err: any) => {
+        console.error(`error trying to create session: ${err}`);
+      });
+
+      return reply.send({
+        sessionId: newSessionToken,
+      });
+    }
+
+    return reply.badRequest(
+      `Unable to authenticate with server: ${'INSERT_ERROR_HERE'}`
+    );
+  };

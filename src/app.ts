@@ -2,6 +2,8 @@ import { join } from 'path';
 import AutoLoad, { AutoloadPluginOptions } from '@fastify/autoload';
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import FastifyJwt from '@fastify/jwt';
+import FastifySession from '@fastify/session';
+import FastifyCookie from '@fastify/cookie';
 
 export type AppOptions = {
   // Place your custom options for app below here.
@@ -15,6 +17,7 @@ const app: FastifyPluginAsync<AppOptions> = async (
   opts
 ): Promise<void> => {
   // Place here your custom code!
+  // Web2 token authentication
   fastify.register(FastifyJwt, {
     secret: process.env.APP_AUTH_SECRET_KEY as string,
   });
@@ -29,6 +32,15 @@ const app: FastifyPluginAsync<AppOptions> = async (
       }
     }
   );
+
+  // Session authentication support for Polkadot
+  fastify.register(FastifyCookie);
+  fastify.register(FastifySession, {
+    secret: process.env.APP_AUTH_SECRET_KEY as string,
+  });
+  fastify.addHook('preHandler', (request, reply, next) => {
+    request.session.destroy(next);
+  });
 
   // Do not touch the following lines
 

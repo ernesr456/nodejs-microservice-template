@@ -20,3 +20,14 @@ export interface IUserRegisterResponseError {
   status: number;
   message: string;
 }
+
+export interface IUserSessionRequestBody {
+  walletId: string;
+}
+export interface IUserSessionResponseSuccessful {
+  sessionId: string;
+}
+export interface IUserSessionResponseError {
+  status: number;
+  message: string;
+}
